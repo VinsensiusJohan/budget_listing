@@ -46,7 +46,7 @@ def register():
     user = User(name=data['name'], email=data['email'], password_hash=hashed_pw)
     db.session.add(user)
     db.session.commit()
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify(message='User registered successfully', token=token), 201
 
 @app.route('/api/login', methods=['POST'])
@@ -54,7 +54,7 @@ def login():
     data = request.json
     user = User.query.filter_by(email=data['email']).first()
     if user and bcrypt.check_password_hash(user.password_hash, data['password']):
-        token = create_access_token(identity=user.id)
+        token = create_access_token(identity=str(user.id))
         return jsonify(message='Login successful', token=token)
     return jsonify(message='Invalid credentials'), 401
 
