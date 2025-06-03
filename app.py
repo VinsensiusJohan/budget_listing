@@ -9,9 +9,6 @@ import os
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:12345678@34.121.77.122:3306/db-budget-listing'
-app.config['JWT_SECRET_KEY'] = 'supersecretkey'
 CORS(app, origins=["https://vinsensiusjohan.github.io"])
 
 db = SQLAlchemy(app)
