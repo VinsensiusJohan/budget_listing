@@ -43,6 +43,8 @@ class Transaction(db.Model):
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
+    if not data.get('name') or not data.get('email') or not data.get('password'):
+        return jsonify(message='Semua field wajib diisi'), 400
     hashed_pw = bcrypt.generate_password_hash(data['password']).decode('utf-8')
     user = User(name=data['name'], email=data['email'], password_hash=hashed_pw)
     db.session.add(user)
@@ -53,6 +55,8 @@ def register():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
+     if not data.get('email') or not data.get('password'):
+        return jsonify(message='Email dan password wajib diisi'), 400
     user = User.query.filter_by(email=data['email']).first()
     if user and bcrypt.check_password_hash(user.password_hash, data['password']):
         token = create_access_token(identity=str(user.id))
