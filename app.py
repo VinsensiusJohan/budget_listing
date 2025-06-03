@@ -4,9 +4,13 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
 from datetime import datetime
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///budgetlite.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:12345678@34.121.77.122:3306/db-budget-listing'
 app.config['JWT_SECRET_KEY'] = 'supersecretkey'
 CORS(app, origins=["https://vinsensiusjohan.github.io"])
 
@@ -144,8 +148,12 @@ def summary():
         balance=income_total - expense_total
     )
 
+# ---------------------
+# Init DB (Auto Create Table)
+# ---------------------
 with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
