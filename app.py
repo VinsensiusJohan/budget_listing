@@ -23,17 +23,29 @@ jwt = JWTManager(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    transactions = db.relationship('Transaction', backref='user', lazy=True, cascade='all, delete-orphan')
+
+class Location(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=True)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    transactions = db.relationship('Transaction', backref='location', lazy=True)
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    type = db.Column(db.String(10), nullable=False)  # income/expense
+    type = db.Column(db.String(10), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     note = db.Column(db.String(200))
     date = db.Column(db.Date, nullable=False)
+    currency_code = db.Column(db.String(10), default='IDR')
+    currency_rate = db.Column(db.Float, default=1.0)
+    time_zone = db.Column(db.String(50), default='Asia/Jakarta')
+    location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -46,6 +58,9 @@ def register():
     data = request.json
     if not data.get('name') or not data.get('email') or not data.get('password'):
         return jsonify(message='Semua field wajib diisi'), 400
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify(message='Email sudah terdaftar'), 409
+
     hashed_pw = bcrypt.generate_password_hash(data['password']).decode('utf-8')
     user = User(name=data['name'], email=data['email'], password_hash=hashed_pw)
     db.session.add(user)
@@ -87,7 +102,18 @@ def get_transactions():
             'amount': t.amount,
             'category': t.category,
             'note': t.note,
-            'date': t.date.strftime('%Y-%m-%d')
+            'date': t.date.strftime('%Y-%m-%d'),
+            'currency_code': t.currency_code,
+            'currency_rate': t.currency_rate,
+            'time_zone': t.time_zone,
+            'location': {
+                'id': t.location.id,
+                'name': t.location.name,
+                'latitude': t.location.latitude,
+                'longitude': t.location.longitude
+            } if t.location else None,
+            'created_at': t.created_at.isoformat(),
+            'updated_at': t.updated_at.isoformat()
         } for t in transactions
     ]
     return jsonify(transactions=result)
@@ -97,13 +123,29 @@ def get_transactions():
 def add_transaction():
     user_id = get_jwt_identity()
     data = request.json
+
+    location = None
+    if data.get('location'):
+        loc_data = data['location']
+        location = Location(
+            name=loc_data.get('name'),
+            latitude=loc_data['latitude'],
+            longitude=loc_data['longitude']
+        )
+        db.session.add(location)
+        db.session.flush()  # To get the ID
+
     t = Transaction(
         user_id=user_id,
         type=data['type'],
         amount=data['amount'],
         category=data['category'],
         note=data.get('note', ''),
-        date=datetime.strptime(data['date'], '%Y-%m-%d').date()
+        date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
+        currency_code=data.get('currency_code', 'IDR'),
+        currency_rate=data.get('currency_rate', 1.0),
+        time_zone=data.get('time_zone', 'Asia/Jakarta'),
+        location_id=location.id if location else None
     )
     db.session.add(t)
     db.session.commit()
@@ -115,11 +157,15 @@ def update_transaction(id):
     user_id = get_jwt_identity()
     t = Transaction.query.filter_by(id=id, user_id=user_id).first_or_404()
     data = request.json
+
     t.type = data['type']
     t.amount = data['amount']
     t.category = data['category']
     t.note = data.get('note', '')
     t.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+    t.currency_code = data.get('currency_code', 'IDR')
+    t.currency_rate = data.get('currency_rate', 1.0)
+    t.time_zone = data.get('time_zone', 'Asia/Jakarta')
     db.session.commit()
     return jsonify(message='Transaction updated')
 
