@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=10)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app)
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -56,7 +56,7 @@ def register():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
-     if not data.get('email') or not data.get('password'):
+    if not data.get('email') or not data.get('password'):
         return jsonify(message='Email dan password wajib diisi'), 400
     user = User.query.filter_by(email=data['email']).first()
     if user and bcrypt.check_password_hash(user.password_hash, data['password']):
