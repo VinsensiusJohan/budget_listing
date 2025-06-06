@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
 from datetime import datetime, timedelta
+from models import Location
 import os
 
 app = Flask(__name__)
@@ -29,10 +30,11 @@ class User(db.Model):
 
 class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=True)
+    name = db.Column(db.String(150), nullable=True, unique=True)  
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     transactions = db.relationship('Transaction', backref='location', lazy=True)
+
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -195,6 +197,48 @@ def summary():
         expense_total=expense_total,
         balance=income_total - expense_total
     )
+
+location_bp = Blueprint('location', __name__)
+
+@location_bp.route('/locations', methods=['POST'])
+def add_location():
+    data = request.get_json()
+
+    name = data.get('name')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+
+    # Validasi input
+    if not name or latitude is None or longitude is None:
+        return jsonify({'error': 'Nama, latitude, dan longitude harus diisi'}), 400
+
+    # Cek jika nama lokasi sudah digunakan
+    existing_location = Location.query.filter_by(name=name).first()
+    if existing_location:
+        return jsonify({'error': f'Lokasi dengan nama "{name}" sudah digunakan'}), 409
+
+    try:
+        new_location = Location(
+            name=name,
+            latitude=float(latitude),
+            longitude=float(longitude)
+        )
+        db.session.add(new_location)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Lokasi berhasil ditambahkan',
+            'location': {
+                'id': new_location.id,
+                'name': new_location.name,
+                'latitude': new_location.latitude,
+                'longitude': new_location.longitude
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 500
 
 # ---------------------
 # Init DB (Auto Create Table)
