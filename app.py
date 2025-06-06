@@ -10,7 +10,6 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=10)
-app.register_blueprint(location_bp)
 CORS(app)
 
 db = SQLAlchemy(app)
@@ -239,6 +238,8 @@ def add_location():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 500
+
+app.register_blueprint(location_bp)
 # ---------------------
 # Init DB (Auto Create Table)
 # ---------------------
