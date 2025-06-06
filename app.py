@@ -200,7 +200,7 @@ def summary():
 
 location_bp = Blueprint('location', __name__)
 
-@location_bp.route('/locations', methods=['POST'])
+@location_bp.route('/api/locations', methods=['POST'])
 def add_location():
     data = request.get_json()
 
