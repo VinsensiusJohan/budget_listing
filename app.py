@@ -201,7 +201,9 @@ def summary():
 location_bp = Blueprint('location', __name__)
 
 @location_bp.route('/api/locations', methods=['POST'])
+@jwt_required()
 def add_location():
+    user_id = get_jwt_identity()
     data = request.get_json()
 
     name = data.get('name')
@@ -211,8 +213,6 @@ def add_location():
     # Validasi input
     if not name or latitude is None or longitude is None:
         return jsonify({'error': 'Nama, latitude, dan longitude harus diisi'}), 400
-
-    # Cek jika nama lokasi sudah digunakan
     existing_location = Location.query.filter_by(name=name).first()
     if existing_location:
         return jsonify({'error': f'Lokasi dengan nama "{name}" sudah digunakan'}), 409
@@ -239,7 +239,6 @@ def add_location():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 500
-
 # ---------------------
 # Init DB (Auto Create Table)
 # ---------------------
