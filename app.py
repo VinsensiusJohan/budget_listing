@@ -119,6 +119,39 @@ def get_transactions():
     ]
     return jsonify(transactions=result)
 
+@app.route('/api/transactions/<int:id>', methods=['GET'])
+@jwt_required()
+def get_transaction_by_id(id):
+    user_id = get_jwt_identity()
+    # Cari transaksi berdasarkan id dan user_id untuk melindungi data user
+    transaction = Transaction.query.filter_by(id=id, user_id=user_id).first()
+
+    if not transaction:
+        # Jika transaksi tidak ditemukan, kembalikan 404 Not Found
+        abort(404, description=f"Transaction with id {id} not found")
+
+    result = {
+        'id': transaction.id,
+        'type': transaction.type,
+        'amount': transaction.amount,
+        'category': transaction.category,
+        'note': transaction.note,
+        'date': transaction.date.strftime('%Y-%m-%d'),
+        'currency_code': transaction.currency_code,
+        'currency_rate': transaction.currency_rate,
+        'time_zone': transaction.time_zone,
+        'location': {
+            'id': transaction.location.id,
+            'name': transaction.location.name,
+            'latitude': transaction.location.latitude,
+            'longitude': transaction.location.longitude
+        } if transaction.location else None,
+        'created_at': transaction.created_at.isoformat(),
+        'updated_at': transaction.updated_at.isoformat()
+    }
+
+    return jsonify(transaction=result)
+
 @app.route('/api/transactions', methods=['POST'])
 @jwt_required()
 def add_transaction():
