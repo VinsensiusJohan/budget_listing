@@ -272,16 +272,11 @@ def add_location():
         db.session.rollback()
         return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 500
 
-@app.route('/api/locations/search', methods=['GET'])
+@app.route('/api/locations/', methods=['GET'])
 @jwt_required()
 def search_locations():
-    query = request.args.get('q', '', type=str)
-    if not query:
-        return jsonify(message="Parameter 'q' (query) wajib diisi"), 400
-
-    # Cari lokasi berdasarkan nama yang mengandung query (case-insensitive)
-    locations = Location.query.filter(Location.name.ilike(f'%{query}%')).all()
-
+    user_id = get_jwt_identity()
+    locations = Location.query.all()
     results = [
         {
             'id': loc.id,
@@ -291,8 +286,8 @@ def search_locations():
         }
         for loc in locations
     ]
-
     return jsonify(locations=results)
+
 
 
 app.register_blueprint(location_bp)
