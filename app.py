@@ -46,7 +46,7 @@ class Transaction(db.Model):
     currency_code = db.Column(db.String(10), default='IDR')
     currency_rate = db.Column(db.Float, default=1.0)
     time_zone = db.Column(db.String(50), default='Asia/Jakarta')
-    location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=True)
+    location_id = db.Column(db.String(150), db.ForeignKey('location.name'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
