@@ -176,7 +176,7 @@ def add_transaction():
         currency_code=data.get('currency_code', 'IDR'),
         currency_rate=data.get('currency_rate', 1.0),
         time_zone=data.get('time_zone', 'Asia/Jakarta'),
-        location_id=location.id if location else None  
+        location_id=location_name
     )
     try:
         db.session.add(t)
