@@ -158,12 +158,14 @@ def get_transaction_by_id(id):
 def add_transaction():
     user_id = get_jwt_identity()
     data = request.json
-    location_name = data.get('location_id')
+
+    location_name = data.get('location_name')
     location = None
     if location_name:
         location = Location.query.filter_by(name=location_name).first()
         if not location:
             return jsonify(message='Invalid location name'), 400
+
     t = Transaction(
         user_id=user_id,
         type=data['type'],
@@ -174,7 +176,7 @@ def add_transaction():
         currency_code=data.get('currency_code', 'IDR'),
         currency_rate=data.get('currency_rate', 1.0),
         time_zone=data.get('time_zone', 'Asia/Jakarta'),
-        location_id=location_name
+        location_id=location.id if location else None  
     )
     try:
         db.session.add(t)
@@ -183,6 +185,7 @@ def add_transaction():
     except Exception as e:
         db.session.rollback()
         return jsonify(message='Failed to add transaction', error=str(e)), 500
+
 
 @app.route('/api/transactions/<int:id>', methods=['PUT'])
 @jwt_required()
