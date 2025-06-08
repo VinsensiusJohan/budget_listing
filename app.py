@@ -140,6 +140,7 @@ def get_transaction_by_id(id):
         'currency_code': transaction.currency_code,
         'currency_rate': transaction.currency_rate,
         'time_zone': transaction.time_zone,
+        'location_name':transaction.location_id,
         'location': {
             'id': transaction.location.id,
             'name': transaction.location.name,
