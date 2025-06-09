@@ -159,7 +159,7 @@ def add_transaction():
     user_id = get_jwt_identity()
     data = request.json
 
-    location_name = data.get('location_name')
+    location_name = data.get('location_id')
     location = None
     if location_name:
         location = Location.query.filter_by(name=location_name).first()
@@ -176,7 +176,7 @@ def add_transaction():
         currency_code=data.get('currency_code', 'IDR'),
         currency_rate=data.get('currency_rate', 1.0),
         time_zone=data.get('time_zone', 'Asia/Jakarta'),
-        location_id=data.get('location_name')
+        location_id=data.get('location_id')
     )
     try:
         db.session.add(t)
