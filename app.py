@@ -202,6 +202,7 @@ def update_transaction(id):
     t.currency_code = data.get('currency_code', 'IDR')
     t.currency_rate = data.get('currency_rate', 1.0)
     t.time_zone = data.get('time_zone', 'Asia/Jakarta')
+    t.location_id=data.get('location_id')
     db.session.commit()
     return jsonify(message='Transaction updated')
 
@@ -274,11 +275,14 @@ def add_location():
         db.session.rollback()
         return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 500
 
-@app.route('/api/locations/', methods=['GET'])
+@app.route('/api/locations/search', methods=['GET'])
 @jwt_required()
-def search_locations():
-    user_id = get_jwt_identity()
-    locations = Location.query.all()
+def search_locations_by_query():
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({'locations': []})
+
+    locations = Location.query.filter(Location.name.ilike(f'%{query}%')).all()
     results = [
         {
             'id': loc.id,
@@ -288,7 +292,44 @@ def search_locations():
         }
         for loc in locations
     ]
-    return jsonify(locations=results)
+    return jsonify({'locations': results})
+
+@app.route('/api/locations/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_location(id):
+    location = Location.query.get_or_404(id)
+    data = request.get_json()
+    name = data.get('name')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+
+    if not name or latitude is None or longitude is None:
+        return jsonify({'error': 'Semua data wajib diisi'}), 400
+
+    # Cek jika nama baru sudah dipakai oleh lokasi lain
+    existing = Location.query.filter(Location.name == name, Location.id != id).first()
+    if existing:
+        return jsonify({'error': 'Nama lokasi sudah dipakai'}), 409
+
+    location.name = name
+    location.latitude = latitude
+    location.longitude = longitude
+    db.session.commit()
+
+    return jsonify({'message': 'Lokasi berhasil diperbarui'})
+
+@app.route('/api/locations/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_location(id):
+    location = Location.query.get_or_404(id)
+
+    # Cek apakah lokasi dipakai di transaksi
+    if location.transactions and len(location.transactions) > 0:
+        return jsonify({'error': 'Lokasi tidak bisa dihapus karena sedang digunakan'}), 400
+
+    db.session.delete(location)
+    db.session.commit()
+    return jsonify({'message': 'Lokasi berhasil dihapus'})
 
 
 
