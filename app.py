@@ -275,6 +275,23 @@ def add_location():
         db.session.rollback()
         return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 500
 
+
+@app.route('/api/locations', methods=['GET'])
+@jwt_required()
+def get_all_locations():
+    locations = Location.query.all()
+    results = [
+        {
+            'id': loc.id,
+            'name': loc.name,
+            'latitude': loc.latitude,
+            'longitude': loc.longitude,
+        }
+        for loc in locations
+    ]
+    return jsonify(locations=results), 200
+
+
 @app.route('/api/locations/search', methods=['GET'])
 @jwt_required()
 def search_locations_by_query():
